@@ -218,3 +218,19 @@ pub fn assert_socket_close_on_exec<S>(_: &S) {
 /// Bind to any port on localhost.	/// Bind to any port on localhost.
 pub fn any_local_address() -> SocketAddr {	pub fn any_local_address() -> SocketAddr {
     "127.0.0.1:0".parse().unwrap()	    "127.0.0.1:0".parse().unwrap()
+     
+#![cfg(not(all(
+    feature = "os-poll",
+    feature = "os-util",
+    feature = "tcp",
+    feature = "udp",
+    feature = "uds"
+)))]
+compile_error!("run main Mio tests with `--all-features`");
+© 2020 GitHub, Inc.
+Terms
+Privacy
+Security
+Status
+
+    
