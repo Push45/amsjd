@@ -1,0 +1,220 @@
+# amsjd 8  tests/tcp_listener.rs 
+@@ -11,8 +11,9 @@ use std::thread;
+
+
+mod util;	mod util;
+use util::{	use util::{
+    any_local_address, any_local_ipv6_address, assert_send, assert_sync, assert_would_block,	    any_local_address, any_local_ipv6_address, assert_send, assert_socket_close_on_exec,
+    expect_events, expect_no_events, init, init_with_poll, ExpectEvent,	    assert_socket_non_blocking, assert_sync, assert_would_block, expect_events, expect_no_events,
+    init, init_with_poll, ExpectEvent,
+};	};
+
+
+const ID1: Token = Token(0);	const ID1: Token = Token(0);
+@@ -54,6 +55,9 @@ where
+    let mut listener = make_listener(addr).unwrap();	    let mut listener = make_listener(addr).unwrap();
+    let address = listener.local_addr().unwrap();	    let address = listener.local_addr().unwrap();
+
+
+    assert_socket_non_blocking(&listener);
+    assert_socket_close_on_exec(&listener);
+
+    poll.registry()	    poll.registry()
+        .register(&mut listener, ID1, Interest::READABLE)	        .register(&mut listener, ID1, Interest::READABLE)
+        .expect("unable to register TCP listener");	        .expect("unable to register TCP listener");
+ 8  tests/tcp_stream.rs 
+@@ -14,8 +14,9 @@ mod util;
+#[cfg(not(target_os = "windows"))]	#[cfg(not(target_os = "windows"))]
+use util::init;	use util::init;
+use util::{	use util::{
+    any_local_address, any_local_ipv6_address, assert_send, assert_sync, assert_would_block,	    any_local_address, any_local_ipv6_address, assert_send, assert_socket_close_on_exec,
+    expect_events, expect_no_events, init_with_poll, ExpectEvent, Readiness,	    assert_socket_non_blocking, assert_sync, assert_would_block, expect_events, expect_no_events,
+    init_with_poll, ExpectEvent, Readiness,
+};	};
+
+
+const DATA1: &[u8] = b"Hello world!";	const DATA1: &[u8] = b"Hello world!";
+@@ -63,6 +64,9 @@ where
+    let (handle, addr) = echo_listener(addr, 1);	    let (handle, addr) = echo_listener(addr, 1);
+    let mut stream = make_stream(addr).unwrap();	    let mut stream = make_stream(addr).unwrap();
+
+
+    assert_socket_non_blocking(&stream);
+    assert_socket_close_on_exec(&stream);
+
+    poll.registry()	    poll.registry()
+        .register(&mut stream, ID1, Interest::WRITABLE.add(Interest::READABLE))	        .register(&mut stream, ID1, Interest::WRITABLE.add(Interest::READABLE))
+        .expect("unable to register TCP stream");	        .expect("unable to register TCP stream");
+ 15  tests/udp_socket.rs 
+@@ -14,8 +14,9 @@ use std::time::Duration;
+#[macro_use]	#[macro_use]
+mod util;	mod util;
+use util::{	use util::{
+    any_local_address, any_local_ipv6_address, assert_error, assert_send, assert_sync,	    any_local_address, any_local_ipv6_address, assert_error, assert_send,
+    assert_would_block, expect_events, expect_no_events, init, init_with_poll, ExpectEvent,	    assert_socket_close_on_exec, assert_socket_non_blocking, assert_sync, assert_would_block,
+    expect_events, expect_no_events, init, init_with_poll, ExpectEvent,
+};	};
+
+
+const DATA1: &[u8] = b"Hello world!";	const DATA1: &[u8] = b"Hello world!";
+@@ -65,6 +66,11 @@ fn unconnected_udp_socket_std() {
+fn smoke_test_unconnected_udp_socket(mut socket1: UdpSocket, mut socket2: UdpSocket) {	fn smoke_test_unconnected_udp_socket(mut socket1: UdpSocket, mut socket2: UdpSocket) {
+    let (mut poll, mut events) = init_with_poll();	    let (mut poll, mut events) = init_with_poll();
+
+
+    assert_socket_non_blocking(&socket1);
+    assert_socket_close_on_exec(&socket1);
+    assert_socket_non_blocking(&socket2);
+    assert_socket_close_on_exec(&socket2);
+
+    let address1 = socket1.local_addr().unwrap();	    let address1 = socket1.local_addr().unwrap();
+    let address2 = socket2.local_addr().unwrap();	    let address2 = socket2.local_addr().unwrap();
+
+
+@@ -276,6 +282,11 @@ fn connected_udp_socket_std() {
+fn smoke_test_connected_udp_socket(mut socket1: UdpSocket, mut socket2: UdpSocket) {	fn smoke_test_connected_udp_socket(mut socket1: UdpSocket, mut socket2: UdpSocket) {
+    let (mut poll, mut events) = init_with_poll();	    let (mut poll, mut events) = init_with_poll();
+
+
+    assert_socket_non_blocking(&socket1);
+    assert_socket_close_on_exec(&socket1);
+    assert_socket_non_blocking(&socket2);
+    assert_socket_close_on_exec(&socket2);
+
+    poll.registry()	    poll.registry()
+        .register(	        .register(
+            &mut socket1,	            &mut socket1,
+ 15  tests/unix_datagram.rs 
+@@ -9,8 +9,9 @@ use std::os::unix::net;
+#[macro_use]	#[macro_use]
+mod util;	mod util;
+use util::{	use util::{
+    assert_send, assert_sync, assert_would_block, expect_events, expect_no_events, init,	    assert_send, assert_socket_close_on_exec, assert_socket_non_blocking, assert_sync,
+    init_with_poll, temp_file, ExpectEvent, Readiness,	    assert_would_block, expect_events, expect_no_events, init, init_with_poll, temp_file,
+    ExpectEvent, Readiness,
+};	};
+
+
+const DATA1: &[u8] = b"Hello same host!";	const DATA1: &[u8] = b"Hello same host!";
+@@ -277,6 +278,11 @@ fn unix_datagram_deregister() {
+fn smoke_test_unconnected(mut datagram1: UnixDatagram, mut datagram2: UnixDatagram) {	fn smoke_test_unconnected(mut datagram1: UnixDatagram, mut datagram2: UnixDatagram) {
+    let (mut poll, mut events) = init_with_poll();	    let (mut poll, mut events) = init_with_poll();
+
+
+    assert_socket_non_blocking(&datagram1);
+    assert_socket_close_on_exec(&datagram1);
+    assert_socket_non_blocking(&datagram2);
+    assert_socket_close_on_exec(&datagram2);
+
+    let addr1 = datagram1.local_addr().unwrap();	    let addr1 = datagram1.local_addr().unwrap();
+    let addr2 = datagram2.local_addr().unwrap();	    let addr2 = datagram2.local_addr().unwrap();
+    let path1 = addr1.as_pathname().expect("failed to get pathname");	    let path1 = addr1.as_pathname().expect("failed to get pathname");
+@@ -330,6 +336,11 @@ fn smoke_test_unconnected(mut datagram1: UnixDatagram, mut datagram2: UnixDatagr
+fn smoke_test_connected(mut datagram1: UnixDatagram, mut datagram2: UnixDatagram) {	fn smoke_test_connected(mut datagram1: UnixDatagram, mut datagram2: UnixDatagram) {
+    let (mut poll, mut events) = init_with_poll();	    let (mut poll, mut events) = init_with_poll();
+
+
+    assert_socket_non_blocking(&datagram1);
+    assert_socket_close_on_exec(&datagram1);
+    assert_socket_non_blocking(&datagram2);
+    assert_socket_close_on_exec(&datagram2);
+
+    let local_addr1 = datagram1.local_addr().unwrap();	    let local_addr1 = datagram1.local_addr().unwrap();
+    let peer_addr1 = datagram1.peer_addr().unwrap();	    let peer_addr1 = datagram1.peer_addr().unwrap();
+    let local_addr2 = datagram2.local_addr().unwrap();	    let local_addr2 = datagram2.local_addr().unwrap();
+ 8  tests/unix_listener.rs 
+@@ -11,8 +11,8 @@ use std::thread;
+#[macro_use]	#[macro_use]
+mod util;	mod util;
+use util::{	use util::{
+    assert_send, assert_sync, assert_would_block, expect_events, expect_no_events, init_with_poll,	    assert_send, assert_socket_close_on_exec, assert_socket_non_blocking, assert_sync,
+    temp_file, ExpectEvent,	    assert_would_block, expect_events, expect_no_events, init_with_poll, temp_file, ExpectEvent,
+};	};
+
+
+const DEFAULT_BUF_SIZE: usize = 64;	const DEFAULT_BUF_SIZE: usize = 64;
+@@ -142,6 +142,10 @@ where
+    let path = temp_file(test_name);	    let path = temp_file(test_name);
+
+
+    let mut listener = new_listener(&path).unwrap();	    let mut listener = new_listener(&path).unwrap();
+
+    assert_socket_non_blocking(&listener);
+    assert_socket_close_on_exec(&listener);
+
+    poll.registry()	    poll.registry()
+        .register(	        .register(
+            &mut listener,	            &mut listener,
+ 9  tests/unix_stream.rs 
+@@ -13,8 +13,9 @@ use std::thread;
+#[macro_use]	#[macro_use]
+mod util;	mod util;
+use util::{	use util::{
+    assert_send, assert_sync, assert_would_block, expect_events, expect_no_events, init,	    assert_send, assert_socket_close_on_exec, assert_socket_non_blocking, assert_sync,
+    init_with_poll, temp_file, ExpectEvent, Readiness,	    assert_would_block, expect_events, expect_no_events, init, init_with_poll, temp_file,
+    ExpectEvent, Readiness,
+};	};
+
+
+const DATA1: &[u8] = b"Hello same host!";	const DATA1: &[u8] = b"Hello same host!";
+@@ -412,6 +413,10 @@ where
+    let path = remote_addr.as_pathname().expect("failed to get pathname");	    let path = remote_addr.as_pathname().expect("failed to get pathname");
+
+
+    let mut stream = connect_stream(path).unwrap();	    let mut stream = connect_stream(path).unwrap();
+
+    assert_socket_non_blocking(&stream);
+    assert_socket_close_on_exec(&stream);
+
+    poll.registry()	    poll.registry()
+        .register(	        .register(
+            &mut stream,	            &mut stream,
+ 32  tests/util/mod.rs 
+@@ -4,6 +4,8 @@
+
+
+use std::net::SocketAddr;	use std::net::SocketAddr;
+use std::ops::BitOr;	use std::ops::BitOr;
+#[cfg(unix)]
+use std::os::unix::io::AsRawFd;
+use std::path::PathBuf;	use std::path::PathBuf;
+use std::sync::Once;	use std::sync::Once;
+use std::time::Duration;	use std::time::Duration;
+@@ -194,6 +196,36 @@ pub fn assert_would_block<T>(result: io::Result<T>) {
+    }	    }
+}	}
+
+
+/// Assert that `NONBLOCK` is set on `socket`.
+#[cfg(unix)]
+pub fn assert_socket_non_blocking<S>(socket: &S)
+where
+    S: AsRawFd,
+{
+    let flags = unsafe { libc::fcntl(socket.as_raw_fd(), libc::F_GETFL) };
+    assert!(flags & libc::O_NONBLOCK != 0, "socket not non-blocking");
+}
+
+#[cfg(windows)]
+pub fn assert_socket_non_blocking<S>(_: &S) {
+    // No way to get this information...
+}
+
+/// Assert that `CLOEXEC` is set on `socket`.
+#[cfg(unix)]
+pub fn assert_socket_close_on_exec<S>(socket: &S)
+where
+    S: AsRawFd,
+{
+    let flags = unsafe { libc::fcntl(socket.as_raw_fd(), libc::F_GETFD) };
+    assert!(flags & libc::FD_CLOEXEC != 0, "socket flag CLOEXEC not set");
+}
+
+#[cfg(windows)]
+pub fn assert_socket_close_on_exec<S>(_: &S) {
+    // Windows doesn't have this concept.
+}
+
+/// Bind to any port on localhost.	/// Bind to any port on localhost.
+pub fn any_local_address() -> SocketAddr {	pub fn any_local_address() -> SocketAddr {
+    "127.0.0.1:0".parse().unwrap()	    "127.0.0.1:0".parse().unwrap()
